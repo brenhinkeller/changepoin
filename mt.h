@@ -13,10 +13,10 @@
 #define MT_LEN 624
 #include <stdlib.h>
 
-void mt_init(uint32_t* mt_buffer, int* mt_index) {
+void mt_init(uint32_t* mt_buffer, uint32_t* mt_index) {
     int i;
     for (i = 0; i < MT_LEN; i++){
-        mt_buffer[i] = random();
+        mt_buffer[i] = rand();
     }
     *mt_index = 0;
 }
@@ -29,8 +29,8 @@ void mt_init(uint32_t* mt_buffer, int* mt_index) {
 #define TWIST(mt_buffer,i,j)    ((mt_buffer)[i] & UPPER_MASK) | ((mt_buffer)[j] & LOWER_MASK)
 #define MAGIC(s)        (((s)&1)*MATRIX_A)
 
-uint32_t mt_rand_r(uint32_t* mt_buffer, int* mt_index) {
-    int idx = *mt_index;
+uint32_t mt_rand_r(uint32_t* mt_buffer, uint32_t* mt_index) {
+    uint32_t idx = *mt_index;
     uint32_t s;
     int i;
 	
@@ -202,7 +202,7 @@ static const double wtab[128] = {
 };
 
 
-double mt_gaussian_ziggurat(uint32_t* mt_buffer, int* mt_index, double sigma) {
+double mt_gaussian_ziggurat(uint32_t* mt_buffer, uint32_t* mt_index, double sigma) {
   uint32_t  U, sign, i, j;
   double  x, y;
 

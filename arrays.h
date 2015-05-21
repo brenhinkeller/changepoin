@@ -65,8 +65,8 @@ int minInt(const int a, const int b){
 	return a;
 }
 
-double minArray(double * const restrict someArray,const int length){
-	int i;
+double minArray(double * const restrict someArray,const uint32_t length){
+	uint32_t i;
 	double currentMin=someArray[0];
 	for (i=1; i<length; i++){
 		if (someArray[i]<currentMin){currentMin=someArray[i];}
@@ -74,8 +74,8 @@ double minArray(double * const restrict someArray,const int length){
 	return currentMin;
 }
 
-int minArrayInt(int * const restrict someArray,const int length){
-	int i, currentMin=someArray[0];
+int minArrayInt(int * const restrict someArray,const uint32_t length){
+	uint32_t i, currentMin=someArray[0];
 	for (i=1; i<length; i++){
 		if (someArray[i]<currentMin){currentMin=someArray[i];}
 	}
@@ -93,8 +93,8 @@ int maxInt(const int a, const int b){
 	return a;
 }
 
-double maxArray(double * const restrict someArray, const int length){
-	int i;
+double maxArray(double * const restrict someArray, const uint32_t length){
+	uint32_t i;
 	double currentMax=someArray[0];
 	for (i=1; i<length; i++){
 		if (someArray[i]>currentMax){currentMax=someArray[i];}
@@ -102,8 +102,8 @@ double maxArray(double * const restrict someArray, const int length){
 	return currentMax;
 }
 
-int maxArrayInt(int * const restrict someArray, const int length){
-	int i, currentMax=someArray[0];
+int maxArrayInt(int * const restrict someArray, const uint32_t length){
+	uint32_t i, currentMax=someArray[0];
 	for (i=1; i<length; i++){
 		if (someArray[i]>currentMax){currentMax=someArray[i];}
 	}
@@ -113,8 +113,8 @@ int maxArrayInt(int * const restrict someArray, const int length){
 
 
 /* Malloc a 2D array of doubles of dimensions Rows x Columns */
-double **mallocDoubleArray(const int rows, const int columns) {
-	int i; double **someArray;
+double **mallocDoubleArray(const uint32_t rows, const uint32_t columns) {
+	uint32_t i; double **someArray;
 	someArray = (double **) malloc(rows*sizeof(double *));
 	for (i = 0; i < rows; i++){
 		someArray[i] = (double *) malloc(columns*sizeof(double));
@@ -123,16 +123,16 @@ double **mallocDoubleArray(const int rows, const int columns) {
 } 
 
 /* Free a 2D array of doubles of length rows */
-void freeDoubleArray(double **someArray, const int rows) {
-	int i;
+void freeDoubleArray(double **someArray, const uint32_t rows) {
+	uint32_t i;
 	for (i=0; i<rows; i++) {free(someArray[i]);}
 	free(someArray);
 }
 
 
 /* Malloc a 2D array of ints of dimensions Rows x Columns */
-int **mallocIntArray(const int rows, const int columns) {
-	int i; int **someArray;
+int **mallocIntArray(const uint32_t rows, const uint32_t columns) {
+	uint32_t i; int **someArray;
 	someArray = (int **) malloc(rows*sizeof(int *));
 	for (i = 0; i < rows; i++){
 		someArray[i] = (int *) malloc(columns*sizeof(int));
@@ -141,8 +141,8 @@ int **mallocIntArray(const int rows, const int columns) {
 } 
 
 /* Free a 2D array of ints of length rows */
-void freeIntArray(int **someArray, const int rows) {
-	int i;
+void freeIntArray(int **someArray, const uint32_t rows) {
+	uint32_t i;
 	for (i=0; i<rows; i++) {free(someArray[i]);}
 	free(someArray);
 }
@@ -151,7 +151,7 @@ void freeIntArray(int **someArray, const int rows) {
 
 
 /* Parse a CSV file, return pointer to a 2d array of doubles */
-double **csvparse(const char filePath[], const char delim, int * const restrict rows, int * const restrict columns){
+double **csvparse(const char filePath[], const char delim, uint32_t * const restrict rows, uint32_t * const restrict columns){
 
 	// File to open
 	FILE *fp;
@@ -164,7 +164,7 @@ double **csvparse(const char filePath[], const char delim, int * const restrict 
 	} else {
 
 		char c;
-		int numColumns=0, maxColumns=0, numChars=0, maxChars=0, numRows=0;
+		uint32_t numColumns=0, maxColumns=0, numChars=0, maxChars=0, numRows=0;
 
 		// Determine maximum number of characters per row, delimiters per row, and rows
 		for(c=getc(fp); c != EOF; c=getc(fp)){
@@ -194,7 +194,7 @@ double **csvparse(const char filePath[], const char delim, int * const restrict 
 		*columns=maxColumns;				
 
 		// For each line,
-		int i=0, j=0, k, field[maxColumns+2];
+		uint32_t i=0, j=0, k, field[maxColumns+2];
 		char str[maxChars+2];
 		char *endp;
 		rewind(fp);
@@ -231,7 +231,7 @@ double **csvparse(const char filePath[], const char delim, int * const restrict 
 
 
 /* Parse a CSV file, return pointer to a 2d array of doubles */
-double *csvparseflat(const char filePath[], const char delim, int * const restrict rows, int * const restrict columns){
+double *csvparseflat(const char filePath[], const char delim, uint32_t * const restrict rows, uint32_t * const restrict columns){
 
 	// File to open
 	FILE *fp;
@@ -244,7 +244,7 @@ double *csvparseflat(const char filePath[], const char delim, int * const restri
 	} else {
 
 		char c, cl;
-		int numColumns=0, maxColumns=0, numChars=0, maxChars=0, numRows=0;
+		uint32_t numColumns=0, maxColumns=0, numChars=0, maxChars=0, numRows=0;
 
 		// Determine maximum number of characters per row, delimiters per row, and rows
 		for(c=getc(fp); c != EOF; c=getc(fp)){
@@ -281,7 +281,7 @@ double *csvparseflat(const char filePath[], const char delim, int * const restri
 		*columns=maxColumns;				
 
 		// Read the array
-		int i=0, j=0, k, field[maxColumns+2];
+		uint32_t i=0, j=0, k, field[maxColumns+2];
 		char str[maxChars+2];
 		char *endp;
 		rewind(fp);
@@ -320,14 +320,14 @@ double *csvparseflat(const char filePath[], const char delim, int * const restri
 
 }
 
-int csvwriteflat(const double* data, const char filePath[], const char* mode,  const char delim, int rows, int  columns){
+uint32_t csvwriteflat(const double* data, const char filePath[], const char* mode,  const char delim, uint32_t rows, uint32_t  columns){
 	// File to open
 	FILE *fp;
 	fp=fopen(filePath, mode);
 
 	//Print the array
-	for (int i=0;i<rows;i++){
-		for (int j=0;j<columns;j++){
+	for (uint32_t i=0;i<rows;i++){
+		for (uint32_t j=0;j<columns;j++){
 			fprintf(fp, "%g%c", data[j*rows + i], delim);
 		}
 		// Delete the trailing delimiter and print a newline at the end of the row
@@ -340,10 +340,10 @@ int csvwriteflat(const double* data, const char filePath[], const char* mode,  c
 
 
 // Compute mean and variance with Knuth's algorithm
-void Knuth_var(const double* const x, const int n, double* const restrict mean, double* const restrict var){
+void Knuth_var(const double* const x, const uint32_t n, double* const restrict mean, double* const restrict var){
 	double delta, mu=0, m2=0;
 
-	for (int i=0; i<n; i++){
+	for (uint32_t i=0; i<n; i++){
 		delta = x[i] - mu;
 		mu += delta / (i+1);
 		m2 += delta*(x[i] - mu);
@@ -359,11 +359,11 @@ void Knuth_var(const double* const x, const int n, double* const restrict mean, 
 }
 
 // Compute mean and variance with Knuth's algorithm, ignoring NaN data
-void Knuth_nanvar(const double* const x, const int n, double* const mean, double* var){
+void Knuth_nanvar(const double* const x, const uint32_t n, double* const mean, double* var){
 	double delta, mu=0, m2=0;
-	int exists=0;
+	uint32_t exists=0;
 
-	for (int i=0; i<n; i++){
+	for (uint32_t i=0; i<n; i++){
 		if (!isnan(x[i])){
 			exists++;
 			delta = x[i] - mu;
@@ -385,11 +385,11 @@ void Knuth_nanvar(const double* const x, const int n, double* const mean, double
 }
 
 // Compute mean and standard deviation with Knuth's algorithm, ignoring NaN data
-void Knuth_nanstd(const double* const x, const int n, double* const restrict mean, double* const restrict std){
+void Knuth_nanstd(const double* const x, const uint32_t n, double* const restrict mean, double* const restrict std){
 	double delta, mu=0, m2=0;
-	int exists=0;
+	uint32_t exists=0;
 
-	for (int i=0; i<n; i++){
+	for (uint32_t i=0; i<n; i++){
 		if (!isnan(x[i])){
 			exists++;
 			delta = x[i] - mu;
@@ -412,10 +412,10 @@ void Knuth_nanstd(const double* const x, const int n, double* const restrict mea
 
 
 // Compute sum of a double array, excluding NaNs
-double nansum(const double* const x, const int n){
+double nansum(const double* const x, const uint32_t n){
 	double S=0.0;
-	int exists=0;
-	for (int i=0; i<n; i++){
+	uint32_t exists=0;
+	for (uint32_t i=0; i<n; i++){
 		if (!isnan(x[i])){
 			S+=x[i];
 			exists=1;
@@ -429,10 +429,10 @@ double nansum(const double* const x, const int n){
 }
 
 // Compute sum of the squares of a double array, excluding NaNs
-double nansumSq(const double* const x, const int n){
+double nansumSq(const double* const x, const uint32_t n){
 	double S=0.0;
-	int exists=0;
-	for (int i=0; i<n; i++){
+	uint32_t exists=0;
+	for (uint32_t i=0; i<n; i++){
 		if (!isnan(x[i])){
 			S+=x[i]*x[i];
 			exists=1;
@@ -447,10 +447,10 @@ double nansumSq(const double* const x, const int n){
 
 
 // Compute mean of a double array, excluding NaNs
-double nanmean(const double* const x, const int n){
+double nanmean(const double* const x, const uint32_t n){
 	double S=0.0;
-	int exists=0;
-	for (int i=0; i<n; i++){
+	uint32_t exists=0;
+	for (uint32_t i=0; i<n; i++){
 		if (!isnan(x[i])){
 			exists++;
 			S+=x[i];
@@ -460,7 +460,7 @@ double nanmean(const double* const x, const int n){
 }
 
 // Compute variance of a double array
-double nanvar(const double* const x, const int n){
+double nanvar(const double* const x, const uint32_t n){
 	double c;
 	if (n<1){
 		return NAN;
@@ -474,8 +474,8 @@ double nanvar(const double* const x, const int n){
 	}
 
 	double S=0.0, S2=0.0;
-	int exists=0;
-	for (int i=0; i<n; i++){
+	uint32_t exists=0;
+	for (uint32_t i=0; i<n; i++){
 		if (!isnan(x[i])){
 			exists++;
 			S += x[i]-c;
@@ -486,7 +486,7 @@ double nanvar(const double* const x, const int n){
 }
 
 // Compute standard deviation of an array, excluding NaNs
-double nanstd(double* const restrict x, const int n){
+double nanstd(double* const restrict x, const uint32_t n){
 	double c;
 	if (n<1){
 		return NAN;
@@ -500,8 +500,8 @@ double nanstd(double* const restrict x, const int n){
 	}
 
 	double S=0.0, S2=0.0;
-	int exists=0;
-	for (int i=0; i<n; i++){
+	uint32_t exists=0;
+	for (uint32_t i=0; i<n; i++){
 		if (!isnan(x[i])){
 			exists++;
 			S += x[i]-c;
@@ -512,11 +512,11 @@ double nanstd(double* const restrict x, const int n){
 }
 
 // Compute mean and standard deviation of an array, excluding NaNs
-void Offset_nanvar(double* const restrict x, const int n, double* const restrict mu, double* const var){
+void Offset_nanvar(double* const restrict x, const uint32_t n, double* const restrict mu, double* const var){
 	*mu=nanmean(x,n);
 	double S=0.0, S2=0.0;
-	int exists=0;
-	for (int i=0; i<n; i++){
+	uint32_t exists=0;
+	for (uint32_t i=0; i<n; i++){
 		if (!isnan(x[i])){
 			exists++;
 			S += x[i]-*mu;
@@ -527,11 +527,11 @@ void Offset_nanvar(double* const restrict x, const int n, double* const restrict
 }
 
 // Compute mean and standard deviation of an array, excluding NaNs
-void Offset_nanstd(double* const restrict x, const int n, double* const restrict mu, double* const sigma){
+void Offset_nanstd(double* const restrict x, const uint32_t n, double* const restrict mu, double* const sigma){
 	*mu=nanmean(x,n);
 	double S=0.0, S2=0.0;
-	int exists=0;
-	for (int i=0; i<n; i++){
+	uint32_t exists=0;
+	for (uint32_t i=0; i<n; i++){
 		if (!isnan(x[i])){
 			exists++;
 			S += x[i]-*mu;
@@ -542,19 +542,19 @@ void Offset_nanstd(double* const restrict x, const int n, double* const restrict
 }
 
 // Normalize a double array, excluding NaNs
-void normalize(double* x, int n){
+void normalize(double* x, uint32_t n){
 	double mu=nanmean(x,n);
-	for (int i=0; i<n; i++){
+	for (uint32_t i=0; i<n; i++){
 		x[i]-=mu;
 	}
 }
 
 // Normalize a double array, excluding NaNs
-void standardize(double* x, int n){
+void standardize(double* x, uint32_t n){
 	double mu, sigma;
 	Offset_nanstd(x,n,&mu,&sigma);
 	if (sigma>0){
-		for (int i=0; i<n; i++){
+		for (uint32_t i=0; i<n; i++){
 			x[i] = (x[i]-mu)/sigma;
 		}
 	} else {
@@ -589,7 +589,7 @@ void sort_ints(int *a, size_t n){
 void unique_ints(int *a, int *np){
 	size_t n=*np;
 	qsort(a, n, sizeof(int), compare_ints);
-	int i,j;
+	uint32_t i,j;
 	for (i=0; i<n; i++){
 		while (a[i]==a[i+1]){
 			for (j=i+1; j<(n-0); j++){
@@ -601,3 +601,40 @@ void unique_ints(int *a, int *np){
 	*np=n;
 }
 
+
+// From wikipedia (public domain)
+/* Comparison function. Receives two generic (void) pointers. */
+int compare_uints(const void *p, const void *q){
+	uint32_t x = *(const uint32_t *)p;
+	uint32_t y = *(const uint32_t *)q;
+	/* to avoid undefined behaviour through signed integer overflow,
+	 *         avoid: return x - y; */
+	int ret;
+	if (x == y){
+		ret = 0;
+	} else {
+		ret = (x < y) ? -1 : 1;
+	}
+	return ret;
+}
+ 
+/* Sort an array of n integers, pointed to by a. */
+void sort_uints(int *a, size_t n){
+	qsort(a, n, sizeof(uint32_t), compare_ints);
+}
+
+// Sort an array and delete nonunique elements
+void unique_uints(uint32_t *a, uint32_t *np){
+	size_t n=*np;
+	qsort(a, n, sizeof(uint32_t), compare_ints);
+	uint32_t i,j;
+	for (i=0; i<n; i++){
+		while (a[i]==a[i+1]){
+			for (j=i+1; j<(n-0); j++){
+				a[j]=a[j+1];
+			}
+			n--;
+		}
+	}
+	*np=n;
+}
