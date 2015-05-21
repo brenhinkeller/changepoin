@@ -13,7 +13,7 @@
 #define MT_LEN 624
 #include <stdlib.h>
 
-void mt_init(unsigned long* mt_buffer, int* mt_index) {
+void mt_init(uint32_t* mt_buffer, int* mt_index) {
     int i;
     for (i = 0; i < MT_LEN; i++){
         mt_buffer[i] = random();
@@ -29,12 +29,12 @@ void mt_init(unsigned long* mt_buffer, int* mt_index) {
 #define TWIST(mt_buffer,i,j)    ((mt_buffer)[i] & UPPER_MASK) | ((mt_buffer)[j] & LOWER_MASK)
 #define MAGIC(s)        (((s)&1)*MATRIX_A)
 
-unsigned long mt_rand_r(unsigned long* mt_buffer, int* mt_index) {
+uint32_t mt_rand_r(uint32_t* mt_buffer, int* mt_index) {
     int idx = *mt_index;
-    unsigned long s;
+    uint32_t s;
     int i;
 	
-    if (idx == MT_LEN*sizeof(unsigned long))
+    if (idx == MT_LEN*sizeof(uint32_t))
     {
         idx = 0;
         i = 0;
@@ -50,8 +50,8 @@ unsigned long mt_rand_r(unsigned long* mt_buffer, int* mt_index) {
         s = TWIST(mt_buffer, MT_LEN-1, 0);
         mt_buffer[MT_LEN-1] = mt_buffer[MT_IA-1] ^ (s >> 1) ^ MAGIC(s);
     }
-    *mt_index = idx + sizeof(unsigned long);
-    return *(unsigned long *)((unsigned char *) mt_buffer + idx);
+    *mt_index = idx + sizeof(uint32_t);
+    return *(uint32_t *)((unsigned char *) mt_buffer + idx);
 }
 
 
@@ -130,7 +130,7 @@ static const double ytab[128] = {
 
 /* tabulated values for 2^24 times x[i]/x[i+1],
  * used to accept for U*x[i+1]<=x[i] without any floating point operations */
-static const unsigned long ktab[128] = {
+static const uint32_t ktab[128] = {
   0, 12590644, 14272653, 14988939,
   15384584, 15635009, 15807561, 15933577,
   16029594, 16105155, 16166147, 16216399,
@@ -202,8 +202,8 @@ static const double wtab[128] = {
 };
 
 
-double mt_gaussian_ziggurat(unsigned long* mt_buffer, int* mt_index, double sigma) {
-  unsigned long  U, sign, i, j;
+double mt_gaussian_ziggurat(uint32_t* mt_buffer, int* mt_index, double sigma) {
+  uint32_t  U, sign, i, j;
   double  x, y;
 
   while (1) {

@@ -585,3 +585,19 @@ void sort_ints(int *a, size_t n){
 	qsort(a, n, sizeof(int), compare_ints);
 }
 
+// Sort an array and delete nonunique elements
+void unique_ints(int *a, int *np){
+	size_t n=*np;
+	qsort(a, n, sizeof(int), compare_ints);
+	int i,j;
+	for (i=0; i<n; i++){
+		while (a[i]==a[i+1]){
+			for (j=i+1; j<(n-0); j++){
+				a[j]=a[j+1];
+			}
+			n--;
+		}
+	}
+	*np=n;
+}
+
