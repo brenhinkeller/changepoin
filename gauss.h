@@ -1,62 +1,4 @@
-/* mt.h - pseudorandom uniform distribution via the Mersenne Twister algorithm
- * 
- * This program implements the Mersenne twister algorithm for generation of
- * pseudorandom numbers. The program returns random integers in the range from
- * 0 to 2^32-1 (this holds even if a long int is larger than 32 bits). 
- * Timing with gcc indicates that it is about twice as fast as the built-in 
- * rand function. The original code was written by Michael Brundage and has been
- * placed in the public domain. 
- *
- * Last modified 2015
- */
-
-#define MT_LEN 624
-#include <stdlib.h>
-
-void mt_init(uint32_t* mt_buffer, uint32_t* mt_index) {
-    int i;
-    for (i = 0; i < MT_LEN; i++){
-        mt_buffer[i] = rand();
-    }
-    *mt_index = 0;
-}
-
-#define MT_IA           397
-#define MT_IB           (MT_LEN - MT_IA)
-#define UPPER_MASK      0x80000000
-#define LOWER_MASK      0x7FFFFFFF
-#define MATRIX_A        0x9908B0DF
-#define TWIST(mt_buffer,i,j)    ((mt_buffer)[i] & UPPER_MASK) | ((mt_buffer)[j] & LOWER_MASK)
-#define MAGIC(s)        (((s)&1)*MATRIX_A)
-
-uint32_t mt_rand_r(uint32_t* mt_buffer, uint32_t* mt_index) {
-    uint32_t idx = *mt_index;
-    uint32_t s;
-    int i;
-	
-    if (idx == MT_LEN*sizeof(uint32_t))
-    {
-        idx = 0;
-        i = 0;
-        for (; i < MT_IB; i++) {
-            s = TWIST(mt_buffer, i, i+1);
-            mt_buffer[i] = mt_buffer[i + MT_IA] ^ (s >> 1) ^ MAGIC(s);
-        }
-        for (; i < MT_LEN-1; i++) {
-            s = TWIST(mt_buffer, i, i+1);
-            mt_buffer[i] = mt_buffer[i - MT_IB] ^ (s >> 1) ^ MAGIC(s);
-        }
-        
-        s = TWIST(mt_buffer, MT_LEN-1, 0);
-        mt_buffer[MT_LEN-1] = mt_buffer[MT_IA-1] ^ (s >> 1) ^ MAGIC(s);
-    }
-    *mt_index = idx + sizeof(uint32_t);
-    return *(uint32_t *)((unsigned char *) mt_buffer + idx);
-}
-
-
-
-/* gauss.c - gaussian random numbers, using the Ziggurat method
+/* gauss.h - gaussian random numbers, using the Ziggurat method
  *
  * Copyright (C) 2005  Jochen Voss.
  *
@@ -88,6 +30,7 @@ uint32_t mt_rand_r(uint32_t* mt_buffer, uint32_t* mt_index) {
  */
 
 #include <math.h>
+#include "pcg_variants.h"
 
 /* position of right-most step */
 #define PARAM_R 3.44428647676
@@ -202,12 +145,12 @@ static const double wtab[128] = {
 };
 
 
-double mt_gaussian_ziggurat(uint32_t* mt_buffer, uint32_t* mt_index, double sigma) {
+double pcg_gaussian_ziggurat(pcg32_random_t* rng, double sigma) {
   uint32_t  U, sign, i, j;
   double  x, y;
 
   while (1) {
-    U = mt_rand_r(mt_buffer, mt_index);
+    U = pcg32_random_r(rng);
     i = U & 0x0000007F;		/* 7 bit to choose the step */
     sign = U & 0x00000080;	/* 1 bit for the sign */
     j = U>>8;			/* 24 bit for the x-value */
@@ -219,10 +162,10 @@ double mt_gaussian_ziggurat(uint32_t* mt_buffer, uint32_t* mt_index, double sigm
       double  y0, y1;
       y0 = ytab[i];
       y1 = ytab[i+1];
-      y = y1+(y0-y1)*mt_rand_r(mt_buffer, mt_index);
+      y = y1+(y0-y1)*pcg32_random_r(rng);
     } else {
-      x = PARAM_R - log(1.0-mt_rand_r(mt_buffer, mt_index))/PARAM_R;
-      y = exp(-PARAM_R*(x-0.5*PARAM_R))*mt_rand_r(mt_buffer, mt_index);
+      x = PARAM_R - log(1.0-pcg32_random_r(rng))/PARAM_R;
+      y = exp(-PARAM_R*(x-0.5*PARAM_R))*pcg32_random_r(rng);
     }
     if (y < exp(-0.5*x*x))  break;
   }

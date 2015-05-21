@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <math.h>
 #include "arrays.h"
-#include "mt.h"
+#include "pcg_variants.h"
+#include "gauss.h"
 
 #include <time.h>
 #include <stdlib.h>
@@ -51,12 +52,9 @@ int main(int argc, char **argv){
 	}
 
 	// Initialize random number generator
-	uint32_t mt_buffer[MT_LEN], mt_index;
+	pcg32_random_t rng;
+	pcg32_srandom_r(&rng,time(NULL), clock());
 	double r;
-//	int mt_index;
-	srandom(time(NULL));
-	mt_init(mt_buffer,&mt_index);
-
 
 	clock_t t0, t1, t2, t3, t4;
 	
@@ -72,17 +70,17 @@ int main(int argc, char **argv){
 	// Make array to hold boundary points between partitions
 	uint32_t * const restrict bndPnts=malloc(sizeof(uint32_t)*(K+2+1000));
 	bndPnts[0]=0;
+	bndPnts[np[0]+1]=rows;
 	for (i=0; i<np[0]; i++){
-		bndPnts[i+1]=mt_rand_r(mt_buffer,&mt_index)/(MT_RAND_MAX/100);
-		printf("%g,",mt_rand_r(mt_buffer,&mt_index)/(double) MT_RAND_MAX);
+		bndPnts[i+1]=pcg32_random_r(&rng)/(MT_RAND_MAX/100);
+		printf("%g,",(double) pcg32_random_r(&rng)/4294967295.0);
 	}
 	printf("\n");
-//	unique_uints(&bndPnts[1],&np[0]);
-	bndPnts[np[0]+2]=rows;
+	np[0]=unique_uints(bndPnts,np[0]+2)-2;
 
 	printf("Number of changepoints: %u\n", np[0]);
-	for (i=0; i<np[0]+1; i++){
-		printf("%i,",bndPnts[i+1]);
+	for (i=0; i<np[0]+2; i++){
+		printf("%i,",bndPnts[i]);
 	}
 	printf("\n");
 
@@ -90,7 +88,7 @@ int main(int argc, char **argv){
 	for (i=0;i<nsims;i++){
 
 		// Randomly choose a a modification to the 
-		r = mt_rand_r(mt_buffer, &mt_index);
+		r = pcg32_random_r(&rng);
 
 		if (r < MOVE){
 

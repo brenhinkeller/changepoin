@@ -620,21 +620,37 @@ int compare_uints(const void *p, const void *q){
  
 /* Sort an array of n integers, pointed to by a. */
 void sort_uints(int *a, size_t n){
-	qsort(a, n, sizeof(uint32_t), compare_ints);
+	qsort(a, n, sizeof(uint32_t), compare_uints);
 }
 
 // Sort an array and delete nonunique elements
-void unique_uints(uint32_t *a, uint32_t *np){
-	size_t n=*np;
-	qsort(a, n, sizeof(uint32_t), compare_ints);
+uint32_t unique_uints2(uint32_t *a, const uint32_t np){
+	size_t n=np;
+	qsort(a, n, sizeof(uint32_t), compare_uints);
 	uint32_t i,j;
 	for (i=0; i<n; i++){
 		while (a[i]==a[i+1]){
-			for (j=i+1; j<(n-0); j++){
+			for (j=i+1; j<n; j++){
 				a[j]=a[j+1];
 			}
 			n--;
 		}
 	}
-	*np=n;
+	return np-n;
 }
+
+uint32_t unique_uints(uint32_t *a, const uint32_t np){
+	size_t n=np;
+	qsort(a, n, sizeof(uint32_t), compare_uints);
+	uint32_t i, k=0, last = a[0];
+	for (i=1; i<n; i++){
+		if (a[i]!=last){
+			last=a[i];
+			k++;
+			a[k]=a[i];
+		}
+	}
+	return k+1;
+}
+
+
