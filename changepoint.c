@@ -8,12 +8,12 @@
 #include <stdlib.h>
 
 
-#define MT_RAND_MAX 4294967295
-#define MOVE   (uint32_t) (0.2 * MT_RAND_MAX)
-#define UPDATE (uint32_t) (0.15 * MT_RAND_MAX)
-#define SIGMA  (uint32_t) (0.15 * MT_RAND_MAX)
-#define BIRTH  (uint32_t) (0.25 * MT_RAND_MAX)
-#define DEATH  (uint32_t) (0.25 * MT_RAND_MAX)
+#define RAND_MAX_U32 4294967295
+#define MOVE   (uint32_t) (0.20 * (RAND_MAX_U32+1))
+#define UPDATE (uint32_t) (0.15 * (RAND_MAX_U32+1))
+#define SIGMA  (uint32_t) (0.15 * (RAND_MAX_U32+1))
+#define BIRTH  (uint32_t) (0.25 * (RAND_MAX_U32+1))
+#define DEATH  (uint32_t) (0.25 * (RAND_MAX_U32+1))
 
 
 
@@ -34,14 +34,14 @@ int main(int argc, char **argv){
 	double mu[columns], sigma[columns];
 
 	// Markov chain version using data uncertainties
-	const uint32_t K=100;//=rows-1; // Number of possible changepoint locations
+	const uint32_t K=rows-1; // Number of possible changepoint locations
 	const uint32_t npmin=0; // Minimum number of changepoints
 	const uint32_t npmax=K; // Maximum number of changepoints
 	const uint32_t dmin=10; // Minimum number of points needed between any two changepoints (in any partition)
 
-	const uint32_t nsims = 10000; // Number of simulations to run
-
-
+	const uint32_t nsims = (uint32_t)1E9; // Number of simulations to run
+	printf("Nsims: %lu\n",nsims);
+	
 	// De-mean, normalize variance, and define initial model
 	for(j=0;j<columns;j++){
 		standardize(&d[j*rows], rows);
@@ -54,41 +54,35 @@ int main(int argc, char **argv){
 	// Initialize random number generator
 	pcg32_random_t rng;
 	pcg32_srandom_r(&rng,time(NULL), clock());
-	double r;
+	uint32_t r;
+	double a;
 
 	clock_t t0, t1, t2, t3, t4;
-	
+
 
 	// Make arrays to hold number of changepoints, r-squared, and log likelihood
 	uint32_t * const restrict np=malloc(sizeof(int)*nsims);
-	np[0]=100;
 	double * const restrict r2C=malloc(sizeof(double)*nsims);
-
 	double * const restrict llC=malloc(sizeof(double)*nsims);
-
+	np[0]=0;
 
 	// Make array to hold boundary points between partitions
-	uint32_t * const restrict bndPnts=malloc(sizeof(uint32_t)*(K+2+1000));
+	uint32_t * const restrict bndPnts=malloc(sizeof(uint32_t)*(K+2));
 	bndPnts[0]=0;
 	bndPnts[np[0]+1]=rows;
 	for (i=0; i<np[0]; i++){
-		bndPnts[i+1]=pcg32_random_r(&rng)/(MT_RAND_MAX/100);
-		printf("%g,",(double) pcg32_random_r(&rng)/4294967295.0);
+		bndPnts[i+1]=pcg32_random_r(&rng)/(RAND_MAX_U32/K);
 	}
-	printf("\n");
 	np[0]=unique_uints(bndPnts,np[0]+2)-2;
 
-	printf("Number of changepoints: %u\n", np[0]);
-	for (i=0; i<np[0]+2; i++){
-		printf("%i,",bndPnts[i]);
-	}
-	printf("\n");
 
 	// The actual loop
 	for (i=0;i<nsims;i++){
 
-		// Randomly choose a a modification to the 
+		// Randomly choose a a modification to the model 
 		r = pcg32_random_r(&rng);
+		a = pcg32_random_r(&rng)/4294967295.0;
+//		rn = pcg_gaussian_ziggurat(&rng, 1.0);
 
 		if (r < MOVE){
 
@@ -110,53 +104,7 @@ int main(int argc, char **argv){
 		} else {
 			printf("Uh-oh!\n");
 		}
-
 	}
-
-
-	//Calculate mean and variance
-	double mean[columns], var[columns];
-	t1=clock();
-	for(j=0;j<columns;j++){
-		Knuth_nanstd(&d[j*rows], rows, &mean[j], &var[j]);
-	}
-	t2=clock();
-
-	//Calculate mean and variance
-	for(j=0;j<columns;j++){
-		var[j]=nanstd(&d[j*rows], rows);
-	}	
-	t3=clock();
-
-	//Calculate mean and variance
-	for(j=0;j<columns;j++){
-		mean[j]=nanmean(&d[j*rows], rows);
-	}	
-	t4=clock();
-
-
-	printf("Elapsed time (Knuth_nanstd): %lu\n",t2-t1);
-	printf("Elapsed time (nanstd): %lu\n",t3-t2);
-	printf("Elapsed time (nanmean): %lu\n",t4-t3);
-
-
-	//Print mean and variance
-	for(j=0;j<columns;j++){
-		printf("%g,",mean[j]);
-	}
-	printf("\n");
-	for(j=0;j<columns;j++){
-		printf("%g,",var[j]);
-	}
-	printf("\n");
-
-
-	normalize(mean,columns);
-	for(j=0;j<columns;j++){
-		printf("%g,",mean[j]);
-	}
-	printf("\n");
-
 
 	return 0;
 }
