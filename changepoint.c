@@ -43,9 +43,14 @@ void update_model(const uint32_t* const bndPntsC, const uint32_t np, const uint3
 	}
 }
 
-void update_sigma(const uint32_t* const bndPntsC, const uint32_t np, const uint32_t rows, const uint32_t columns, const double* const d, double* const restrict m){
 
-}
+
+
+
+
+// Currently not used
+//void update_sigma(const uint32_t* const bndPntsC, const uint32_t np, const uint32_t rows, const uint32_t columns, const double* const d, double* const restrict m){
+//}
 
 
 int main(int argc, char **argv){
@@ -60,6 +65,7 @@ int main(int argc, char **argv){
 	// import 2-d data array as a flat double array
 	double* const restrict d = csvparseflat(argv[1],',', &rows, &columns);		
 	double* const restrict s = malloc(sizeof(double)*columns);
+	double* const restrict sP = malloc(sizeof(double)*columns);
 	double* const restrict m = malloc(sizeof(double)*rows*columns);
 
 	double mu[columns], sigma[columns];
@@ -90,10 +96,9 @@ int main(int argc, char **argv){
 
 	// Make arrays to hold number of changepoints, r-squared, and log likelihood
 //	uint32_t * const restrict np=malloc(sizeof(int)*nsims);
-	uint32_t np, npP;
 //	double * const restrict r2C=malloc(sizeof(double)*nsims);
 //	double * const restrict llC=malloc(sizeof(double)*nsims);
-	np=2;
+	uint32_t np=2, npP;
 
 	// Make array to hold boundary points between partitions
 	uint32_t * const restrict bndPntsC=malloc(sizeof(uint32_t)*(K+2));
@@ -107,36 +112,26 @@ int main(int argc, char **argv){
 	copyArrayUint(bndPntsC,K+2,bndPntsP);
 
 
-	double llP, ll=log_likelihood(d, m, s, rows, columns);
-
+	uint32_t pick;	
+	double sll, llP, ll=log_likelihood(d, m, s, rows, columns);
 
 	// The actual loop
 	for (i=0;i<nsims;i++){
 
-		// Randomly choose a a modification to the model 
+
+		// Randomly choose a type of modification to the model 
 		r = pcg32_random_r(&rng);
 		u = log(pcg32_random_r(&rng)/4294967295.0);
-		uint32_t pick;	
 
-		if (r < MOVE){
-			if (np>0){
-				copyArrayUint(bndPntsC,K+2,bndPntsP);
-				// Pick which changepoint to move
-				pick=pcg32_random_r(&rng)/(RAND_MAX_U32/np)+1;
-				// Move the changepoint between its boundaries
-				bndPntsP[pick] = pcg32_random_r(&rng) / ( RAND_MAX_U32 / ((bndPntsP[pick+1]-1)-(bndPntsP[pick-1]+1)+1) ) + (bndPntsP[pick-1]+1);
 
-				// Update the model
-				update_model(bndPntsP, np, rows, columns, &rng, d, s, m);
+		// Move a changepoint
+		if (r < MOVE && np>0){ 
+			copyArrayUint(bndPntsC,K+2,bndPntsP);
+			// Pick which changepoint to move
+			pick=pcg32_random_r(&rng)/(RAND_MAX_U32/np)+1;
+			// Move the changepoint between its boundaries
+			bndPntsP[pick] = pcg32_random_r(&rng) / ( RAND_MAX_U32 / ((bndPntsP[pick+1]-1)-(bndPntsP[pick-1]+1)+1) ) + (bndPntsP[pick-1]+1);
 
-				// Calculate log likelihood for proposal
-				llP=log_likelihood(d, m, s, rows, columns);
-				if (u<llP-ll){
-					ll=llP;
-					copyArrayUint(bndPntsP,K+2,bndPntsC);
-				}
-			}
-		} else if (r < MOVE+UPDATE){
 			// Update the model
 			update_model(bndPntsP, np, rows, columns, &rng, d, s, m);
 
@@ -146,61 +141,81 @@ int main(int argc, char **argv){
 				ll=llP;
 				copyArrayUint(bndPntsP,K+2,bndPntsC);
 			}
+		} 
 
-		} else if (r < MOVE+UPDATE+SIGMA){
+
+		// Adjust SIMGA
+		else if (r < MOVE+SIGMA){
+			sll=0;
 			// Choose a new sigma
 			for(j=0; j<columns; j++){
-				s[j]=log(pcg32_random_r(&rng)/4294967295.0);
+				sP[j]=log(pcg32_random_r(&rng)/4294967295.0);
+				sll+=log(pow((sP[j]/s[j]),rows));
 			}
 			
 			// Calculate log likelihood for proposal
+			llP=log_likelihood(d, m, sP, rows, columns);
+			if (u<sll+llP-ll){ // If accepted
+				ll=llP;
+				copyArrayUint(bndPntsP,K+2,bndPntsC);
+				copyArray(sP,columns,s);
+			}
+		} 
+
+
+		// Add a changepoint
+		else if (r < MOVE+SIGMA+BIRTH && np<npmax){
+			copyArrayUint(bndPntsC,K+2,bndPntsP);
+
+			// Pick which changepoint to add right of
+			pick=pcg32_random_r(&rng)/(RAND_MAX_U32/(np+1));
+			bndPntsP[np+2] = pcg32_random_r(&rng) / ( RAND_MAX_U32 / ((bndPntsP[pick+1]-1)-(bndPntsP[pick]+1)+1) ) + (bndPntsP[pick]+1);
+			npP=unique_uints(bndPntsP,np+3)-2;
+
+			// Update the model
+			update_model(bndPntsP, npP, rows, columns, &rng, d, s, m);
+			// Calculate log likelihood for proposal
 			llP=log_likelihood(d, m, s, rows, columns);
-			if (u<llP-ll){ // If accepted
+			if (u<llP-ll){
+				ll=llP;
+				np=npP;
+				copyArrayUint(bndPntsP,K+2,bndPntsC);
+			}
+		} 
+		
+
+		// Delete a changepoint
+		else if (r < MOVE+SIGMA+BIRTH+DEATH && np>npmin){
+			copyArrayUint(bndPntsC,K+2,bndPntsP);
+
+			// Pick which changepoint to delete
+			pick=pcg32_random_r(&rng)/(RAND_MAX_U32/np)+1;
+			bndPntsP[pick]=bndPntsP[pick+1];
+			npP=unique_uints(bndPntsP,np+2)-2;
+
+			// Update the model
+			update_model(bndPntsP, np, rows, columns, &rng, d, s, m);
+			// Calculate log likelihood for proposal
+			llP=log_likelihood(d, m, s, rows, columns);
+			if (u<llP-ll){
+				ll=llP;
+				np=npP;
+				copyArrayUint(bndPntsP,K+2,bndPntsC);
+			}
+		} 
+		
+
+		// Update the model
+		else {
+			// Update the model
+			update_model(bndPntsP, np, rows, columns, &rng, d, s, m);
+
+			// Calculate log likelihood for proposal
+			llP=log_likelihood(d, m, s, rows, columns);
+			if (u<llP-ll){
 				ll=llP;
 				copyArrayUint(bndPntsP,K+2,bndPntsC);
 			}
-
-		} else if (r < MOVE+UPDATE+SIGMA+BIRTH){
-			if (np < npmax) {
-				copyArrayUint(bndPntsC,K+2,bndPntsP);
-
-				// Pick which changepoint to add right of
-				pick=pcg32_random_r(&rng)/(RAND_MAX_U32/(np+1));
-				bndPntsP[np+2] = pcg32_random_r(&rng) / ( RAND_MAX_U32 / ((bndPntsP[pick+1]-1)-(bndPntsP[pick]+1)+1) ) + (bndPntsP[pick]+1);
-				npP=unique_uints(bndPntsP,np+3)-2;
-
-				// Update the model
-				update_model(bndPntsP, npP, rows, columns, &rng, d, s, m);
-				// Calculate log likelihood for proposal
-				llP=log_likelihood(d, m, s, rows, columns);
-				if (u<llP-ll){
-					ll=llP;
-					np=npP;
-					copyArrayUint(bndPntsP,K+2,bndPntsC);
-				}
-			}
-		} else if (r < MOVE+UPDATE+SIGMA+BIRTH+DEATH){
-			if (np > npmin) {
-				copyArrayUint(bndPntsC,K+2,bndPntsP);
-
-
-				// Pick which changepoint to delete
-				pick=pcg32_random_r(&rng)/(RAND_MAX_U32/np)+1;
-				bndPntsP[pick]=bndPntsP[pick+1];
-				npP=unique_uints(bndPntsP,np+2)-2;
-
-				// Update the model
-				update_model(bndPntsP, np, rows, columns, &rng, d, s, m);
-				// Calculate log likelihood for proposal
-				llP=log_likelihood(d, m, s, rows, columns);
-				if (u<llP-ll){
-					ll=llP;
-					np=npP;
-					copyArrayUint(bndPntsP,K+2,bndPntsC);
-				}
-			}
-		} else {
-			printf("Uh-oh!\n");
 		}
 //		printf("%u\n",i);
 	}
