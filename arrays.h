@@ -65,7 +65,7 @@ int minInt(const int a, const int b){
 	return a;
 }
 
-double minArray(double * const restrict someArray,const uint32_t length){
+double minArray(const double * const someArray,const uint32_t length){
 	uint32_t i;
 	double currentMin=someArray[0];
 	for (i=1; i<length; i++){
@@ -74,7 +74,7 @@ double minArray(double * const restrict someArray,const uint32_t length){
 	return currentMin;
 }
 
-int minArrayInt(int * const restrict someArray,const uint32_t length){
+int minArrayInt(const int * const someArray,const uint32_t length){
 	uint32_t i, currentMin=someArray[0];
 	for (i=1; i<length; i++){
 		if (someArray[i]<currentMin){currentMin=someArray[i];}
@@ -93,7 +93,7 @@ int maxInt(const int a, const int b){
 	return a;
 }
 
-double maxArray(double * const restrict someArray, const uint32_t length){
+double maxArray(const double * const someArray, const uint32_t length){
 	uint32_t i;
 	double currentMax=someArray[0];
 	for (i=1; i<length; i++){
@@ -102,7 +102,7 @@ double maxArray(double * const restrict someArray, const uint32_t length){
 	return currentMax;
 }
 
-int maxArrayInt(int * const restrict someArray, const uint32_t length){
+int maxArrayInt(const int * const someArray, const uint32_t length){
 	uint32_t i, currentMax=someArray[0];
 	for (i=1; i<length; i++){
 		if (someArray[i]>currentMax){currentMax=someArray[i];}
@@ -110,6 +110,24 @@ int maxArrayInt(int * const restrict someArray, const uint32_t length){
 	return currentMax;
 }
 
+void copyArray(const double * const A, const uint32_t n, double * const restrict B){
+	for (uint32_t i=0; i<n; i++){
+		B[i]=A[i];
+	}
+}
+
+
+void copyArrayInt(const int * const A, const uint32_t n, int * const restrict B){
+	for (uint32_t i=0; i<n; i++){
+		B[i]=A[i];
+	}
+}
+
+void copyArrayUint(const uint32_t * const A, const uint32_t n, uint32_t * const restrict B){
+	for (uint32_t i=0; i<n; i++){
+		B[i]=A[i];
+	}
+}
 
 
 /* Malloc a 2D array of doubles of dimensions Rows x Columns */
@@ -486,7 +504,7 @@ double nanvar(const double* const x, const uint32_t n){
 }
 
 // Compute standard deviation of an array, excluding NaNs
-double nanstd(double* const restrict x, const uint32_t n){
+double nanstd(const double* const x, const uint32_t n){
 	double c;
 	if (n<1){
 		return NAN;
@@ -512,7 +530,7 @@ double nanstd(double* const restrict x, const uint32_t n){
 }
 
 // Compute mean and standard deviation of an array, excluding NaNs
-void Offset_nanvar(double* const restrict x, const uint32_t n, double* const restrict mu, double* const var){
+void Offset_nanvar(const double* const x, const uint32_t n, double* const restrict mu, double* const restrict var){
 	*mu=nanmean(x,n);
 	double S=0.0, S2=0.0;
 	uint32_t exists=0;
@@ -527,7 +545,7 @@ void Offset_nanvar(double* const restrict x, const uint32_t n, double* const res
 }
 
 // Compute mean and standard deviation of an array, excluding NaNs
-void Offset_nanstd(double* const restrict x, const uint32_t n, double* const restrict mu, double* const sigma){
+void Offset_nanstd(const double* const x, const uint32_t n, double* const restrict mu, double* const restrict sigma){
 	*mu=nanmean(x,n);
 	double S=0.0, S2=0.0;
 	uint32_t exists=0;
