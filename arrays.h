@@ -55,17 +55,17 @@ int* linspaceInt(int lower, int upper, int n){
 }
 
 /* Find the minimum of a 1-d array */
-double min(double a, double b){
+double min(const double a, const double b){
 	if (b<a) return b;
 	return a;
 }
 
-int minInt(int a, int b){
+int minInt(const int a, const int b){
 	if (b<a) return b;
 	return a;
 }
 
-double minArray(double someArray[],int length){
+double minArray(double * const restrict someArray,const int length){
 	int i;
 	double currentMin=someArray[0];
 	for (i=1; i<length; i++){
@@ -74,7 +74,7 @@ double minArray(double someArray[],int length){
 	return currentMin;
 }
 
-int minArrayInt(int someArray[],int length){
+int minArrayInt(int * const restrict someArray,const int length){
 	int i, currentMin=someArray[0];
 	for (i=1; i<length; i++){
 		if (someArray[i]<currentMin){currentMin=someArray[i];}
@@ -83,17 +83,17 @@ int minArrayInt(int someArray[],int length){
 }
 
 /* Find the maximum of a 1-d array */
-double max(double a, double b){
+double max(const double a, const double b){
 	if (b>a) return b;
 	return a;
 }
 
-int maxInt(int a, int b){
+int maxInt(const int a, const int b){
 	if (b>a) return b;
 	return a;
 }
 
-double maxArray(double someArray[], int length){
+double maxArray(double * const restrict someArray, const int length){
 	int i;
 	double currentMax=someArray[0];
 	for (i=1; i<length; i++){
@@ -102,7 +102,7 @@ double maxArray(double someArray[], int length){
 	return currentMax;
 }
 
-int maxArrayInt(int someArray[], int length){
+int maxArrayInt(int * const restrict someArray, const int length){
 	int i, currentMax=someArray[0];
 	for (i=1; i<length; i++){
 		if (someArray[i]>currentMax){currentMax=someArray[i];}
@@ -113,7 +113,7 @@ int maxArrayInt(int someArray[], int length){
 
 
 /* Malloc a 2D array of doubles of dimensions Rows x Columns */
-double **mallocDoubleArray(int rows, int columns) {
+double **mallocDoubleArray(const int rows, const int columns) {
 	int i; double **someArray;
 	someArray = (double **) malloc(rows*sizeof(double *));
 	for (i = 0; i < rows; i++){
@@ -123,7 +123,7 @@ double **mallocDoubleArray(int rows, int columns) {
 } 
 
 /* Free a 2D array of doubles of length rows */
-void freeDoubleArray(double **someArray, int rows) {
+void freeDoubleArray(double **someArray, const int rows) {
 	int i;
 	for (i=0; i<rows; i++) {free(someArray[i]);}
 	free(someArray);
@@ -131,7 +131,7 @@ void freeDoubleArray(double **someArray, int rows) {
 
 
 /* Malloc a 2D array of ints of dimensions Rows x Columns */
-int **mallocIntArray(int rows, int columns) {
+int **mallocIntArray(const int rows, const int columns) {
 	int i; int **someArray;
 	someArray = (int **) malloc(rows*sizeof(int *));
 	for (i = 0; i < rows; i++){
@@ -141,7 +141,7 @@ int **mallocIntArray(int rows, int columns) {
 } 
 
 /* Free a 2D array of ints of length rows */
-void freeIntArray(int **someArray, int rows) {
+void freeIntArray(int **someArray, const int rows) {
 	int i;
 	for (i=0; i<rows; i++) {free(someArray[i]);}
 	free(someArray);
@@ -340,7 +340,7 @@ int csvwriteflat(const double* data, const char filePath[], const char* mode,  c
 
 
 // Compute mean and variance with Knuth's algorithm
-void Knuth_var(double* x, int n, double* mean, double* var){
+void Knuth_var(const double* const x, const int n, double* const restrict mean, double* const restrict var){
 	double delta, mu=0, m2=0;
 
 	for (int i=0; i<n; i++){
@@ -359,7 +359,7 @@ void Knuth_var(double* x, int n, double* mean, double* var){
 }
 
 // Compute mean and variance with Knuth's algorithm, ignoring NaN data
-void nanvar(double* x, int n, double* mean, double* var){
+void Knuth_nanvar(const double* const x, const int n, double* const mean, double* var){
 	double delta, mu=0, m2=0;
 	int exists=0;
 
@@ -385,7 +385,7 @@ void nanvar(double* x, int n, double* mean, double* var){
 }
 
 // Compute mean and standard deviation with Knuth's algorithm, ignoring NaN data
-void nanstd(double* x, int n, double* mean, double* std){
+void Knuth_nanstd(const double* const x, const int n, double* const restrict mean, double* const restrict std){
 	double delta, mu=0, m2=0;
 	int exists=0;
 
@@ -412,7 +412,7 @@ void nanstd(double* x, int n, double* mean, double* std){
 
 
 // Compute sum of a double array, excluding NaNs
-double nansum(double* x, int n){
+double nansum(const double* const x, const int n){
 	double S=0.0;
 	int exists=0;
 	for (int i=0; i<n; i++){
@@ -429,7 +429,7 @@ double nansum(double* x, int n){
 }
 
 // Compute sum of the squares of a double array, excluding NaNs
-double nansumSq(double* x, int n){
+double nansumSq(const double* const x, const int n){
 	double S=0.0;
 	int exists=0;
 	for (int i=0; i<n; i++){
@@ -443,12 +443,11 @@ double nansumSq(double* x, int n){
 	} else {
 		return NAN;
 	}
-
 }
 
 
 // Compute mean of a double array, excluding NaNs
-double nanmean(double* x, int n){
+double nanmean(const double* const x, const int n){
 	double S=0.0;
 	int exists=0;
 	for (int i=0; i<n; i++){
@@ -460,6 +459,88 @@ double nanmean(double* x, int n){
 	return S/exists;
 }
 
+// Compute variance of a double array
+double nanvar(const double* const x, const int n){
+	double c;
+	if (n<1){
+		return NAN;
+	} else if (n<11) {;
+		c=x[0];
+	} else {
+		c=nanmean(x,10);
+	}
+	if (isnan(c)){
+	       c=0.0;
+	}
+
+	double S=0.0, S2=0.0;
+	int exists=0;
+	for (int i=0; i<n; i++){
+		if (!isnan(x[i])){
+			exists++;
+			S += x[i]-c;
+			S2 += (x[i]-c) * (x[i]-c);
+		}
+	}
+	return (S2 - (S*S)/exists)/(exists-1);
+}
+
+// Compute standard deviation of an array, excluding NaNs
+double nanstd(double* const restrict x, const int n){
+	double c;
+	if (n<1){
+		return NAN;
+	} else if (n<11) {;
+		c=x[0];
+	} else {
+		c=nanmean(x,10);
+	}
+	if (isnan(c)){
+	       c=0.0;
+	}
+
+	double S=0.0, S2=0.0;
+	int exists=0;
+	for (int i=0; i<n; i++){
+		if (!isnan(x[i])){
+			exists++;
+			S += x[i]-c;
+			S2 += (x[i]-c) * (x[i]-c);
+		}
+	}
+	return sqrt((S2 - (S*S)/exists)/(exists-1));
+}
+
+// Compute mean and standard deviation of an array, excluding NaNs
+void Offset_nanvar(double* const restrict x, const int n, double* const restrict mu, double* const var){
+	*mu=nanmean(x,n);
+	double S=0.0, S2=0.0;
+	int exists=0;
+	for (int i=0; i<n; i++){
+		if (!isnan(x[i])){
+			exists++;
+			S += x[i]-*mu;
+			S2 += (x[i]-*mu) * (x[i]-*mu);
+		}
+	}
+	*var=sqrt((S2 - (S*S)/exists)/(exists-1));
+}
+
+// Compute mean and standard deviation of an array, excluding NaNs
+void Offset_nanstd(double* const restrict x, const int n, double* const restrict mu, double* const sigma){
+	*mu=nanmean(x,n);
+	double S=0.0, S2=0.0;
+	int exists=0;
+	for (int i=0; i<n; i++){
+		if (!isnan(x[i])){
+			exists++;
+			S += x[i]-*mu;
+			S2 += (x[i]-*mu) * (x[i]-*mu);
+		}
+	}
+	*sigma=sqrt((S2 - (S*S)/exists)/(exists-1));
+}
+
 // Normalize a double array, excluding NaNs
 void normalize(double* x, int n){
 	double mu=nanmean(x,n);
@@ -468,6 +549,20 @@ void normalize(double* x, int n){
 	}
 }
 
+// Normalize a double array, excluding NaNs
+void standardize(double* x, int n){
+	double mu, sigma;
+	Offset_nanstd(x,n,&mu,&sigma);
+	if (sigma>0){
+		for (int i=0; i<n; i++){
+			x[i] = (x[i]-mu)/sigma;
+		}
+	} else {
+		for (int i=0; i<n; i++){
+			x[i] = (x[i]-mu);
+		}
+	}
+}
 
 // From wikipedia (public domain)
 /* Comparison function. Receives two generic (void) pointers. */
