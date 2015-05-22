@@ -80,7 +80,7 @@ double lqxz(const double * const d, const double * const m, const uint32_t * con
 int main(int argc, char **argv){
 	// Check input arguments
 	if (argc != 3) {
-		printf("USAGE: %s <number of simulations> <input_filename>\n", argv[0]);
+		fprintf(stderr,"USAGE: %s <number of simulations> <input_filename>\n", argv[0]);
 		exit(1);
 	}
 
@@ -101,7 +101,7 @@ int main(int argc, char **argv){
 	const uint32_t dmin=10; // Minimum number of points needed between any two changepoints (in any partition)
 
 	const uint32_t nsims = atoi(argv[1]); // Number of simulations to run
-	printf("Nsims: %u\n",nsims);
+	fprintf(stderr, "Nsims: %u\n",nsims);
 	
 	// De-mean, normalize variance, and define initial model
 	for(j=0;j<columns;j++){
@@ -229,10 +229,11 @@ int main(int argc, char **argv){
 				np=npP;
 				copyArrayUint(bndPntsP,K+2,bndPntsC);
 //				printf("Birth, lqz = %g\n",-lqz);
-//				for (int n=0; n<np+2; n++){
-//					printf("%u,",bndPntsP[n]);
-//				}
-				printf("\n%u\n",np);
+				for (int n=0; n<np+2; n++){
+					printf("%u,",bndPntsP[n]);
+				}
+				printf("\b\n");
+//				printf("\n%u\n",np);
 			}
 		} 
 		
@@ -260,10 +261,11 @@ int main(int argc, char **argv){
 				np=npP;
 				copyArrayUint(bndPntsP,K+2,bndPntsC);
 //				printf("Death, lqz = %g\n",lqz);
-//				for (int n=0; n<np+2; n++){
-//					printf("%u,",bndPntsP[n]);
-//				}
-				printf("\n%u\n",np);
+				for (int n=0; n<np+2; n++){
+					printf("%u,",bndPntsP[n]);
+				}
+				printf("\b\n");
+//				printf("\n%u\n",np);
 			}
 		} 
 		
