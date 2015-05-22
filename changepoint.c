@@ -232,7 +232,7 @@ int main(int argc, char **argv){
 				for (int n=0; n<np; n++){
 					printf("%u,",bndPntsP[n+1]);
 				}
-				printf("\b\n");
+//				printf("\n");
 //				printf("\n%u\n",np);
 			}
 		} 
@@ -264,7 +264,7 @@ int main(int argc, char **argv){
 				for (int n=0; n<np; n++){
 					printf("%u,",bndPntsP[n+1]);
 				}
-				printf("\b\n");
+//				printf("\n");
 //				printf("\n%u\n",np);
 			}
 		} 
