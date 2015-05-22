@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <stdbool.h>
 
 #include "arrays.h"
 #include "pcg_variants.h"
@@ -44,6 +45,29 @@ void update_model(const uint32_t* const bndPntsC, const uint32_t np, const uint3
 }
 
 
+double lqxz(const double * const d, const double * const m, const uint32_t * const partition, const uint32_t rows, const uint32_t columns){
+	double mu, sigma;
+	double lqz=0, lq=0, lz=0;
+	bool exists=0;
+	for (uint32_t i=0; i<columns; i++){
+		Offset_nanstd(&d[i*rows + partition[0]], partition[1]-partition[0], &mu, &sigma);
+		sigma+=1E-15;
+		lq = -log(sigma*sqrt(2*3.1415926535)) - pow( (d[i*rows + partition[0]] - mu)/(sigma) , 2) / 2;
+		lz = log(maxArray(&d[i*rows],rows) - minArray(&d[i*rows],rows) + 1E-15); 
+		if (!isnan(lq) && !isnan(lz)){
+			lqz += lq + lz;
+			exists=1;
+		}
+//		printf("mu: %g, sigma: %g\n", mu, sigma);
+//		printf("lq: %g, lz: %g\n", lq, lz);
+	}
+//	printf("partition[0]: %u, partition[1]: %u\n", partition[0], partition[1]);
+	if (exists){
+		return lqz;
+	} else {
+		return NAN;
+	}
+}
 
 
 
@@ -55,15 +79,15 @@ void update_model(const uint32_t* const bndPntsC, const uint32_t np, const uint3
 
 int main(int argc, char **argv){
 	// Check input arguments
-	if (argc != 2) {
-		printf("USAGE: %s <input_filename>\n", argv[0]);
+	if (argc != 3) {
+		printf("USAGE: %s <number of simulations> <input_filename>\n", argv[0]);
 		exit(1);
 	}
 
 	uint32_t rows, columns;
 	uint32_t i, j;
 	// import 2-d data array as a flat double array
-	double* const restrict d = csvparseflat(argv[1],',', &rows, &columns);		
+	double* const restrict d = csvparseflat(argv[2],',', &rows, &columns);		
 	double* const restrict s = malloc(sizeof(double)*columns);
 	double* const restrict sP = malloc(sizeof(double)*columns);
 	double* const restrict m = malloc(sizeof(double)*rows*columns);
@@ -76,7 +100,7 @@ int main(int argc, char **argv){
 	const uint32_t npmax=K; // Maximum number of changepoints
 	const uint32_t dmin=10; // Minimum number of points needed between any two changepoints (in any partition)
 
-	const uint32_t nsims = 1E5; // Number of simulations to run
+	const uint32_t nsims = atoi(argv[1]); // Number of simulations to run
 	printf("Nsims: %u\n",nsims);
 	
 	// De-mean, normalize variance, and define initial model
@@ -113,7 +137,7 @@ int main(int argc, char **argv){
 
 
 	uint32_t pick;	
-	double sll, llP, ll=log_likelihood(d, m, s, rows, columns);
+	double lqz, sll, llP, ll=log_likelihood(d, m, s, rows, columns);
 
 	// The actual loop
 	for (i=0;i<nsims;i++){
@@ -137,28 +161,47 @@ int main(int argc, char **argv){
 
 			// Calculate log likelihood for proposal
 			llP=log_likelihood(d, m, s, rows, columns);
+
 			if (u<llP-ll){
+//				printf("Move: llP-ll = %g - %g\n",llP,ll);
+//				printf("Accepted!\n");
 				ll=llP;
 				copyArrayUint(bndPntsP,K+2,bndPntsC);
+//				for (int n=0; n<np+2; n++){
+//					printf("%u,",bndPntsP[n]);
+//				}
+//				printf("\n%u\n",np);
 			}
 		} 
 
 
-		// Adjust SIMGA
+		// Adjust SIGMA
 		else if (r < MOVE+SIGMA){
-			sll=0;
+			copyArray(s,columns,sP);
+
 			// Choose a new sigma
-			for(j=0; j<columns; j++){
-				sP[j]=log(pcg32_random_r(&rng)/4294967295.0);
-				sll+=log(pow((sP[j]/s[j]),rows));
-			}
-			
+			j=pcg32_random_r(&rng)/(RAND_MAX_U32/columns);
+			sP[j]=pcg32_random_r(&rng)/4294967295.0;
+			sll=log(pow((sP[j]/s[j]),rows));
+
 			// Calculate log likelihood for proposal
 			llP=log_likelihood(d, m, sP, rows, columns);
+
 			if (u<sll+llP-ll){ // If accepted
+//			if (u<llP-ll){ // If accepted
+//				printf("Sigma: llP-ll = %g - %g\n",llP,ll);
+//				printf("Accepted!\n");
 				ll=llP;
-				copyArrayUint(bndPntsP,K+2,bndPntsC);
 				copyArray(sP,columns,s);
+//				for (int n=0; n<np+2; n++){
+//					printf("%u,",bndPntsP[n]);
+//				}
+//				printf("\n%u\n",np);
+//				printf("sigma: ");
+//				for (int n=0; n<columns; n++){
+//					printf("%g,",s[n]);
+//				}
+//				printf("\n");
 			}
 		} 
 
@@ -174,12 +217,22 @@ int main(int argc, char **argv){
 
 			// Update the model
 			update_model(bndPntsP, npP, rows, columns, &rng, d, s, m);
+
 			// Calculate log likelihood for proposal
+			lqz=lqxz(d, m, &bndPntsP[pick], rows, columns);
 			llP=log_likelihood(d, m, s, rows, columns);
-			if (u<llP-ll){
+			if (u<-lqz+llP-ll){
+//			if (u<llP-ll){
+//				printf("Birth: llP-ll = %g - %g\n",llP,ll);
+//				printf("Accepted!\n");
 				ll=llP;
 				np=npP;
 				copyArrayUint(bndPntsP,K+2,bndPntsC);
+//				printf("Birth, lqz = %g\n",-lqz);
+//				for (int n=0; n<np+2; n++){
+//					printf("%u,",bndPntsP[n]);
+//				}
+				printf("\n%u\n",np);
 			}
 		} 
 		
@@ -195,12 +248,22 @@ int main(int argc, char **argv){
 
 			// Update the model
 			update_model(bndPntsP, np, rows, columns, &rng, d, s, m);
+
 			// Calculate log likelihood for proposal
 			llP=log_likelihood(d, m, s, rows, columns);
-			if (u<llP-ll){
+			lqz=lqxz(d, m, &bndPntsC[pick], rows, columns);
+			if (u<lqz+llP-ll){
+//			if (u<llP-ll){
+//				printf("Death: llP-ll = %g - %g\n",llP,ll);
+//				printf("Accepted!\n");
 				ll=llP;
 				np=npP;
 				copyArrayUint(bndPntsP,K+2,bndPntsC);
+//				printf("Death, lqz = %g\n",lqz);
+//				for (int n=0; n<np+2; n++){
+//					printf("%u,",bndPntsP[n]);
+//				}
+				printf("\n%u\n",np);
 			}
 		} 
 		
@@ -213,11 +276,20 @@ int main(int argc, char **argv){
 			// Calculate log likelihood for proposal
 			llP=log_likelihood(d, m, s, rows, columns);
 			if (u<llP-ll){
+//				printf("Update: llP-ll = %g - %g\n",llP,ll);
+//				printf("Accepted!\n");
 				ll=llP;
-				copyArrayUint(bndPntsP,K+2,bndPntsC);
+//				printf("Death, lqz = %g\n",lqz);
+//				for (int n=0; n<np+2; n++){
+//					printf("%u,",bndPntsP[n]);
+//				}
+//				printf("\n%u\n",np);
+
 			}
 		}
 //		printf("%u\n",i);
+
+
 	}
 
 	return 0;
