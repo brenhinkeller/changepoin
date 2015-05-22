@@ -176,7 +176,7 @@ double **csvparse(const char filePath[], const char delim, uint32_t * const rest
 	fp=fopen(filePath,"r");
 
 	if (fp==NULL){
-		printf("WARNING: file does not exist!\n");
+		fprintf(stderr,"WARNING: file does not exist!\n");
 		return NULL;
 
 	} else {
@@ -238,9 +238,9 @@ double **csvparse(const char filePath[], const char delim, uint32_t * const rest
 		}
 		fclose(fp);
 
-		printf("Maximum number of characters: %d\n", maxChars);
-		printf("Maximum number of delimiters: %d\n", maxColumns);
-		printf("Number of rows: %d\n", numRows);
+		fprintf(stderr,"Maximum number of characters: %d\n", maxChars);
+		fprintf(stderr,"Maximum number of delimiters: %d\n", maxColumns);
+		fprintf(stderr,"Number of rows: %d\n", numRows);
 
 		return importedMatrix;
 	}
@@ -256,7 +256,7 @@ double *csvparseflat(const char filePath[], const char delim, uint32_t * const r
 	fp=fopen(filePath,"r");
 
 	if (fp==NULL){
-		printf("WARNING: file does not exist!\n");
+		fprintf(stderr,"WARNING: file does not exist!\n");
 		return NULL;
 
 	} else {
@@ -329,9 +329,9 @@ double *csvparseflat(const char filePath[], const char delim, uint32_t * const r
 		}
 		fclose(fp);
 
-		printf("Maximum number of characters: %d\n", maxChars);
-		printf("Maximum number of delimiters: %d\n", maxColumns);
-		printf("Number of rows: %d\n", numRows);
+		fprintf(stderr,"Maximum number of characters: %d\n", maxChars);
+		fprintf(stderr,"Maximum number of delimiters: %d\n", maxColumns);
+		fprintf(stderr,"Number of rows: %d\n", numRows);
 
 		return importedMatrix;
 	}
