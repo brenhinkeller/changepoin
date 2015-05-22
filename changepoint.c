@@ -229,8 +229,8 @@ int main(int argc, char **argv){
 				np=npP;
 				copyArrayUint(bndPntsP,K+2,bndPntsC);
 //				printf("Birth, lqz = %g\n",-lqz);
-				for (int n=0; n<np+2; n++){
-					printf("%u,",bndPntsP[n]);
+				for (int n=0; n<np; n++){
+					printf("%u,",bndPntsP[n+1]);
 				}
 				printf("\b\n");
 //				printf("\n%u\n",np);
@@ -261,8 +261,8 @@ int main(int argc, char **argv){
 				np=npP;
 				copyArrayUint(bndPntsP,K+2,bndPntsC);
 //				printf("Death, lqz = %g\n",lqz);
-				for (int n=0; n<np+2; n++){
-					printf("%u,",bndPntsP[n]);
+				for (int n=0; n<np; n++){
+					printf("%u,",bndPntsP[n+1]);
 				}
 				printf("\b\n");
 //				printf("\n%u\n",np);
