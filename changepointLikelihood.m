@@ -2,7 +2,7 @@
 tic;
 clear
 data=[randn(300,1); randn(500,1)+6; randn(1000,1)+2; randn(470,1)+4];%; randn(100,1)+2; randn(100,1)-5];
-data=repmat(data,20 ,1);
+data=repmat(data,2 ,1);
 % save data data;
 % load data
 data=data-mean(data);

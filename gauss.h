@@ -25,7 +25,7 @@
  *
  * $Id: gauss.c 6739 2005-11-12 02:47:20Z voss $
  * 
- * Modified 2015 by C. Brenhin Keller to use an alternate RNG
+ * Modified 2015 to use a base RNG from the pcg suite.
  *
  */
 

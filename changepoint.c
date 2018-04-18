@@ -15,6 +15,11 @@
 #define BIRTH  (uint32_t) (0.25 * (RAND_MAX_U32+1))
 #define DEATH  (uint32_t) (0.25 * (RAND_MAX_U32+1))
 
+#define FORMATTED 0
+#define DEBUG 0
+
+
+
 double log_likelihood(const double* const d, const double* const m, const double* const s, const uint32_t rows, const uint32_t columns){
 	double ll=0;
 	for (uint32_t i=0; i<columns; i++){
@@ -29,14 +34,9 @@ void update_model(const uint32_t* const bndPntsC, const uint32_t np, const uint3
 	uint32_t i, j, k;
 	double mu, sigma, A;
 	for (i=0; i<columns; i++){
-//		min=minArray(&d[i*rows],rows);
-//		max=maxArray(&d[i*rows],rows);
 		for (j=0; j<(np+1); j++){
-//			min=minArray(&d[i*rows + bndPntsC[j]],bndPntsC[j+1]-bndPntsC[j]);
-//			max=maxArray(&d[i*rows + bndPntsC[j]],bndPntsC[j+1]-bndPntsC[j]);
 			Offset_nanstd(&d[i*rows + bndPntsC[j]], bndPntsC[j+1]-bndPntsC[j], &mu, &sigma);
-//			A = (double) pcg32_random_r(rng) / 42949672959.0 * (max-min) + min;
-			A = pcg_gaussian_ziggurat(rng, sigma) + mu;
+			A = pcg_gaussian_ziggurat(rng, sigma/sqrt(bndPntsC[j+1]-bndPntsC[j])) + mu;
 			for (k=bndPntsC[j]; k<bndPntsC[j+1]; k++){
 				m[i*rows+k]=A;
 			}
@@ -53,7 +53,7 @@ double lqxz(const double * const d, const double * const m, const uint32_t * con
 		Offset_nanstd(&d[i*rows + partition[0]], partition[1]-partition[0], &mu, &sigma);
 		sigma+=1E-15;
 		lq = -log(sigma*sqrt(2*3.1415926535)) - pow( (d[i*rows + partition[0]] - mu)/(sigma) , 2) / 2;
-		lz = log(maxArray(&d[i*rows],rows) - minArray(&d[i*rows],rows) + 1E-15); 
+		lz = log(maxArray(&d[i*rows],rows) - minArray(&d[i*rows],rows) + 1E-15);
 		if (!isnan(lq) && !isnan(lz)){
 			lqz += lq + lz;
 			exists=1;
@@ -79,15 +79,15 @@ double lqxz(const double * const d, const double * const m, const uint32_t * con
 
 int main(int argc, char **argv){
 	// Check input arguments
-	if (argc != 3) {
-		fprintf(stderr,"USAGE: %s <number of simulations> <input_filename>\n", argv[0]);
+	if (argc != 4) {
+		fprintf(stderr,"USAGE: %s <maximum number of changepoints> <number of simulations> <input_filename>\n", argv[0]);
 		exit(1);
 	}
 
 	uint32_t rows, columns;
 	uint32_t i, j;
 	// import 2-d data array as a flat double array
-	double* const restrict d = csvparseflat(argv[2],',', &rows, &columns);		
+	double* const restrict d = csvparseflat(argv[3],',', &rows, &columns);
 	double* const restrict s = malloc(sizeof(double)*columns);
 	double* const restrict sP = malloc(sizeof(double)*columns);
 	double* const restrict m = malloc(sizeof(double)*rows*columns);
@@ -97,12 +97,20 @@ int main(int argc, char **argv){
 	// Markov chain version using data uncertainties
 	const uint32_t K=rows-1; // Number of possible changepoint locations
 	const uint32_t npmin=0; // Minimum number of changepoints
-	const uint32_t npmax=K; // Maximum number of changepoints
-	const uint32_t dmin=10; // Minimum number of points needed between any two changepoints (in any partition)
 
-	const uint32_t nsims = atoi(argv[1]); // Number of simulations to run
+
+	int32_t npmaxSpecified = atoi(argv[1]);
+	if (npmaxSpecified<1){
+		npmaxSpecified = K;
+	}
+	const uint32_t npmax = npmaxSpecified; // Maximum allowed number of changepoints
+	fprintf(stderr, "npmax: %u\n",npmax);
+
+//	const uint32_t dmin=10; // Minimum number of points needed between any two changepoints (in any partition)
+
+	const uint32_t nsims = atoi(argv[2]); // Number of simulations to run
 	fprintf(stderr, "Nsims: %u\n",nsims);
-	
+
 	// De-mean, normalize variance, and define initial model
 	for(j=0;j<columns;j++){
 		standardize(&d[j*rows], rows);
@@ -118,10 +126,7 @@ int main(int argc, char **argv){
 	uint32_t r;
 	double u;
 
-	// Make arrays to hold number of changepoints, r-squared, and log likelihood
-//	uint32_t * const restrict np=malloc(sizeof(int)*nsims);
-//	double * const restrict r2C=malloc(sizeof(double)*nsims);
-//	double * const restrict llC=malloc(sizeof(double)*nsims);
+	// Make arrays to hold number of changepoints
 	uint32_t np=2, npP;
 
 	// Make array to hold boundary points between partitions
@@ -133,46 +138,57 @@ int main(int argc, char **argv){
 		bndPntsC[i+1]=pcg32_random_r(&rng)/(RAND_MAX_U32/K);
 	}
 	np=unique_uints(bndPntsC,np+2)-2;
-	copyArrayUint(bndPntsC,K+2,bndPntsP);
+	copyArrayUint(bndPntsC,np+2,bndPntsP);
 
 
-	uint32_t pick;	
+	uint32_t pick, nextValueUniform, nextValueGaussian;
+	double lastDifference=K/2.0;
 	double lqz, sll, llP, ll=log_likelihood(d, m, s, rows, columns);
 
 	// The actual loop
 	for (i=0;i<nsims;i++){
 
 
-		// Randomly choose a type of modification to the model 
+		// Randomly choose a type of modification to the model
 		r = pcg32_random_r(&rng);
-		u = log(pcg32_random_r(&rng)/4294967295.0);
+		u = pcg32_random_r(&rng)/4294967295.0;
 
 
 		// Move a changepoint
-		if (r < MOVE && np>0){ 
-			copyArrayUint(bndPntsC,K+2,bndPntsP);
+		if (r < MOVE && np>0){
+			copyArrayUint(bndPntsC,np+2,bndPntsP);
 			// Pick which changepoint to move
 			pick=pcg32_random_r(&rng)/(RAND_MAX_U32/np)+1;
 			// Move the changepoint between its boundaries
-			bndPntsP[pick] = pcg32_random_r(&rng) / ( RAND_MAX_U32 / ((bndPntsP[pick+1]-1)-(bndPntsP[pick-1]+1)+1) ) + (bndPntsP[pick-1]+1);
-
+			nextValueUniform = pcg32_random_r(&rng) / ( RAND_MAX_U32 / ((bndPntsP[pick+1]-1)-(bndPntsP[pick-1]+1)+1) ) + (bndPntsP[pick-1]+1);
+			nextValueGaussian = (uint32_t)(pcg_gaussian_ziggurat(&rng, lastDifference) + bndPntsC[pick]);
+			if (abs((int)nextValueUniform-(int)bndPntsP[pick]) > abs((int)nextValueGaussian-(int)bndPntsP[pick]) && nextValueGaussian>bndPntsP[pick-1] && nextValueGaussian<bndPntsP[pick+1] && nextValueGaussian != bndPntsP[pick]){
+				// printf("GaussianCloser: %u %u %u ", nextValueUniform, bndPntsP[pick], nextValueGaussian);
+				bndPntsP[pick] = nextValueGaussian;
+			} else {
+				// printf("UniformCloser: %u %u %u ", nextValueUniform, bndPntsP[pick], nextValueGaussian);
+				bndPntsP[pick] = nextValueUniform;
+			}
 			// Update the model
 			update_model(bndPntsP, np, rows, columns, &rng, d, s, m);
 
 			// Calculate log likelihood for proposal
 			llP=log_likelihood(d, m, s, rows, columns);
 
-			if (u<llP-ll){
-//				printf("Move: llP-ll = %g - %g\n",llP,ll);
-//				printf("Accepted!\n");
+			if(DEBUG){printf("Move: llP-ll = %g - %g\n",llP,ll);}
+			if (u<exp(llP-ll)){
+				if(DEBUG){printf("Accepted!\n");}
 				ll=llP;
-				copyArrayUint(bndPntsP,K+2,bndPntsC);
-//				for (int n=0; n<np+2; n++){
-//					printf("%u,",bndPntsP[n]);
-//				}
+				lastDifference = fabs(((double)bndPntsP[pick]-(double)bndPntsC[pick])*2.9);
+				// printf("%g\n",lastDifference);
+				copyArrayUint(bndPntsP,np+2,bndPntsC);
+				for (int n=0; n<np; n++){
+					printf("%u,",bndPntsP[n+1]);
+				}
+				if (FORMATTED){printf("\n");}
 //				printf("\n%u\n",np);
 			}
-		} 
+		}
 
 
 		// Adjust SIGMA
@@ -187,10 +203,9 @@ int main(int argc, char **argv){
 			// Calculate log likelihood for proposal
 			llP=log_likelihood(d, m, sP, rows, columns);
 
-			if (u<sll+llP-ll){ // If accepted
-//			if (u<llP-ll){ // If accepted
-//				printf("Sigma: llP-ll = %g - %g\n",llP,ll);
-//				printf("Accepted!\n");
+			if(DEBUG){printf("Sigma %g: llP-ll = %g - %g\n",sP[j],llP,ll);}
+			if (u<exp(sll+llP-ll)){ // If accepted
+				if(DEBUG){printf("Accepted!\n");}
 				ll=llP;
 				copyArray(sP,columns,s);
 //				for (int n=0; n<np+2; n++){
@@ -203,72 +218,71 @@ int main(int argc, char **argv){
 //				}
 //				printf("\n");
 			}
-		} 
+		}
 
 
 		// Add a changepoint
-		else if (r < MOVE+SIGMA+BIRTH && np<npmax){
-			copyArrayUint(bndPntsC,K+2,bndPntsP);
+		else if (r < MOVE+SIGMA+BIRTH){
+			if(np<npmax){
+				copyArrayUint(bndPntsC,np+2,bndPntsP);
 
-			// Pick which changepoint to add right of
-			pick=pcg32_random_r(&rng)/(RAND_MAX_U32/(np+1));
-			bndPntsP[np+2] = pcg32_random_r(&rng) / ( RAND_MAX_U32 / ((bndPntsP[pick+1]-1)-(bndPntsP[pick]+1)+1) ) + (bndPntsP[pick]+1);
-			npP=unique_uints(bndPntsP,np+3)-2;
+				// Pick which changepoint to add right of
+				pick=pcg32_random_r(&rng)/(RAND_MAX_U32/(np+1));
+				bndPntsP[np+2] = pcg32_random_r(&rng) / ( RAND_MAX_U32 / ((bndPntsP[pick+1]-1)-(bndPntsP[pick]+1)+1) ) + (bndPntsP[pick]+1);
+				npP=unique_uints(bndPntsP,np+3)-2;
 
-			// Update the model
-			update_model(bndPntsP, npP, rows, columns, &rng, d, s, m);
+				// Update the model
+				update_model(bndPntsP, npP, rows, columns, &rng, d, s, m);
 
-			// Calculate log likelihood for proposal
-			lqz=lqxz(d, m, &bndPntsP[pick], rows, columns);
-			llP=log_likelihood(d, m, s, rows, columns);
-			if (u<-lqz+llP-ll){
-//			if (u<llP-ll){
-//				printf("Birth: llP-ll = %g - %g\n",llP,ll);
-//				printf("Accepted!\n");
-				ll=llP;
-				np=npP;
-				copyArrayUint(bndPntsP,K+2,bndPntsC);
-//				printf("Birth, lqz = %g\n",-lqz);
-				for (int n=0; n<np; n++){
-					printf("%u,",bndPntsP[n+1]);
-				}
-//				printf("\n");
+				// Calculate log likelihood for proposal
+				lqz=lqxz(d, m, &bndPntsP[pick], rows, columns);
+				llP=log_likelihood(d, m, s, rows, columns);
+				if(DEBUG){printf("Birth: -lqz+llP-ll = %g + %g - %g\n",-lqz,llP,ll);}
+				if (u<exp(-lqz+llP-ll)){
+					if(DEBUG){printf("Accepted!\n");}
+					ll=llP;
+					np=npP;
+					copyArrayUint(bndPntsP,np+2,bndPntsC);
+					for (int n=0; n<np; n++){
+						printf("%u,",bndPntsP[n+1]);
+					}
+					if (FORMATTED){printf("\n");}
 //				printf("\n%u\n",np);
+				}
 			}
-		} 
-		
+		}
 
 		// Delete a changepoint
-		else if (r < MOVE+SIGMA+BIRTH+DEATH && np>npmin){
-			copyArrayUint(bndPntsC,K+2,bndPntsP);
+		else if (r < MOVE+SIGMA+BIRTH+DEATH){
+			if(np>npmin){
+				copyArrayUint(bndPntsC,np+2,bndPntsP);
 
-			// Pick which changepoint to delete
-			pick=pcg32_random_r(&rng)/(RAND_MAX_U32/np)+1;
-			bndPntsP[pick]=bndPntsP[pick+1];
-			npP=unique_uints(bndPntsP,np+2)-2;
+				// Pick which changepoint to delete
+				pick=pcg32_random_r(&rng)/(RAND_MAX_U32/np)+1;
+				bndPntsP[pick]=bndPntsP[pick+1];
+				npP=unique_uints(bndPntsP,np+2)-2;
 
-			// Update the model
-			update_model(bndPntsP, np, rows, columns, &rng, d, s, m);
+				// Update the model
+				update_model(bndPntsP, np, rows, columns, &rng, d, s, m);
 
-			// Calculate log likelihood for proposal
-			llP=log_likelihood(d, m, s, rows, columns);
-			lqz=lqxz(d, m, &bndPntsC[pick], rows, columns);
-			if (u<lqz+llP-ll){
-//			if (u<llP-ll){
-//				printf("Death: llP-ll = %g - %g\n",llP,ll);
-//				printf("Accepted!\n");
-				ll=llP;
-				np=npP;
-				copyArrayUint(bndPntsP,K+2,bndPntsC);
-//				printf("Death, lqz = %g\n",lqz);
-				for (int n=0; n<np; n++){
-					printf("%u,",bndPntsP[n+1]);
-				}
-//				printf("\n");
+				// Calculate log likelihood for proposal
+				llP=log_likelihood(d, m, s, rows, columns);
+				lqz=lqxz(d, m, &bndPntsC[pick], rows, columns);
+				if (DEBUG){printf("Death: lqz+llP-ll = %g + %g - %g\n",lqz,llP,ll);}
+				if (u<exp(lqz+llP-ll)){
+					if(DEBUG){printf("Accepted!\n");}
+					ll=llP;
+					np=npP;
+					copyArrayUint(bndPntsP,np+2,bndPntsC);
+					for (int n=0; n<np; n++){
+						printf("%u,",bndPntsP[n+1]);
+					}
+					if (FORMATTED){printf("\n");}
 //				printf("\n%u\n",np);
+				}
 			}
-		} 
-		
+		}
+
 
 		// Update the model
 		else {
@@ -277,15 +291,10 @@ int main(int argc, char **argv){
 
 			// Calculate log likelihood for proposal
 			llP=log_likelihood(d, m, s, rows, columns);
-			if (u<llP-ll){
+			if (u<exp(llP-ll)){
 //				printf("Update: llP-ll = %g - %g\n",llP,ll);
 //				printf("Accepted!\n");
 				ll=llP;
-//				printf("Death, lqz = %g\n",lqz);
-//				for (int n=0; n<np+2; n++){
-//					printf("%u,",bndPntsP[n]);
-//				}
-//				printf("\n%u\n",np);
 
 			}
 		}
@@ -293,8 +302,5 @@ int main(int argc, char **argv){
 
 
 	}
-
 	return 0;
 }
-
-
