@@ -20,6 +20,10 @@
 
 
 
+\\ Example: ./changepoint 10 1000000 exampledata.csv > examplechangepoints.csv
+
+
+
 double log_likelihood(const double* const d, const double* const m, const double* const s, const uint32_t rows, const uint32_t columns){
 	double ll=0;
 	for (uint32_t i=0; i<columns; i++){
