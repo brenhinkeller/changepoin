@@ -20,7 +20,7 @@
 
 
 
-\\ Example: ./changepoint 10 1000000 exampledata.csv > examplechangepoints.csv
+// Example: ./changepoint 10 1000000 exampledata.csv > examplechangepoints.csv
 
 
 
