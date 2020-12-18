@@ -15,7 +15,7 @@
 #define BIRTH  (uint32_t) (0.25 * (RAND_MAX_U32+1))
 #define DEATH  (uint32_t) (0.25 * (RAND_MAX_U32+1))
 
-#define FORMATTED 0
+#define FORMATTED 1
 #define DEBUG 0
 
 
@@ -73,12 +73,6 @@ double lqxz(const double * const d, const double * const m, const uint32_t * con
 	}
 }
 
-
-
-
-// Currently not used
-//void update_sigma(const uint32_t* const bndPntsC, const uint32_t np, const uint32_t rows, const uint32_t columns, const double* const d, double* const restrict m){
-//}
 
 
 int main(int argc, char **argv){
